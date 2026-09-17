@@ -1,0 +1,222 @@
+---
+- name: Deploy test application
+  hosts: all
+  become: true
+
+  tasks:
+
+    # ------------------------------------------------------------
+    # System checks
+    # ------------------------------------------------------------
+
+    - name: Check Ubuntu version
+      ansible.builtin.assert:
+        that:
+          - ansible_facts["distribution"] == "Ubuntu"
+        fail_msg: "This playbook requires Ubuntu"
+    # ------------------------------------------------------------
+    # Check installed packages
+    # ------------------------------------------------------------
+
+    - name: Gather installed packages
+      ansible.builtin.package_facts:
+        manager: apt
+
+    # ------------------------------------------------------------
+    # Docker repository
+    # ------------------------------------------------------------
+
+    - name: Install packages required for Docker repository
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+      when: >
+        'docker-ce' not in ansible_facts.packages or
+        'docker-compose-plugin' not in ansible_facts.packages
+
+    - name: Create Docker keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+      when: >
+        'docker-ce' not in ansible_facts.packages or
+        'docker-compose-plugin' not in ansible_facts.packages
+
+    - name: Download Docker repository key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+      when: >
+        'docker-ce' not in ansible_facts.packages or
+        'docker-compose-plugin' not in ansible_facts.packages
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch=amd64
+          signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/ubuntu
+          {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+        update_cache: true
+      when: >
+        'docker-ce' not in ansible_facts.packages or
+        'docker-compose-plugin' not in ansible_facts.packages
+
+    # ------------------------------------------------------------
+    # Docker installation
+    # ------------------------------------------------------------
+
+    - name: Install Docker Engine
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+        state: present
+      when: >
+        'docker-ce' not in ansible_facts.packages or
+        'docker-ce-cli' not in ansible_facts.packages or
+        'containerd.io' not in ansible_facts.packages or
+        'docker-buildx-plugin' not in ansible_facts.packages
+
+    - name: Install Docker Compose plugin
+      ansible.builtin.apt:
+        name:
+          - docker-compose-plugin
+        state: present
+      when: "'docker-compose-plugin' not in ansible_facts.packages"
+
+    - name: Enable and start Docker
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    # ------------------------------------------------------------
+    # Docker daemon configuration
+    # ------------------------------------------------------------
+
+    - name: Configure Docker daemon
+      ansible.builtin.template:
+        src: daemon.json.j2
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Docker
+
+    - name: Apply Docker daemon configuration
+      ansible.builtin.meta: flush_handlers
+
+
+    # ------------------------------------------------------------
+    # Docker cleanup
+    # ------------------------------------------------------------
+
+    - name: Configure daily Docker cleanup
+      ansible.builtin.cron:
+        name: "Daily Docker system prune"
+        minute: "{{ docker_prune_minute }}"
+        hour: "{{ docker_prune_hour }}"
+        job: "/usr/bin/docker system prune -f"
+
+    # ------------------------------------------------------------
+    # Firewall
+    # ------------------------------------------------------------
+
+    - name: Create Docker user firewall chain
+      ansible.builtin.iptables:
+        chain: DOCKER-USER
+        chain_management: true
+        state: present
+
+    - name: Allow established Docker connections
+      ansible.builtin.iptables:
+        chain: DOCKER-USER
+        ctstate:
+          - ESTABLISHED
+          - RELATED
+        jump: ACCEPT
+        state: present
+
+    - name: Allow Docker internal traffic
+      ansible.builtin.iptables:
+        chain: DOCKER-USER
+        in_interface: docker+
+        out_interface: docker+
+        jump: ACCEPT
+        state: present
+
+    - name: Allow Docker outbound traffic
+      ansible.builtin.iptables:
+        chain: DOCKER-USER
+        in_interface: docker+
+        out_interface: "!docker+"
+        jump: ACCEPT
+        state: present
+
+    - name: Allow application port
+      ansible.builtin.iptables:
+        chain: DOCKER-USER
+        protocol: tcp
+        destination_port: "{{ app_port }}"
+        jump: ACCEPT
+        state: present
+
+# Drop all other Docker forwarded traffic.
+# Enable this only if the host is dedicated to this project
+# and no other Docker containers need to accept forwarded traffic.
+#
+# If other containers are running on the host, leave this disabled
+# to avoid affecting their network connectivity.
+#
+# - name: Drop other Docker forwarded traffic
+#   ansible.builtin.iptables:
+#     chain: DOCKER-USER
+#     jump: DROP
+#     state: present
+
+# ------------------------------------------------------------
+# Docker project
+# ------------------------------------------------------------
+
+    - name: Create Docker project directory
+      ansible.builtin.file:
+        path: "{{ docker_project_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copy Docker project to target host
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../docker/"
+        dest: "{{ docker_project_dir }}/"
+        owner: root
+        group: root
+        mode: "preserve"
+
+    - name: Start Docker Compose project
+      community.docker.docker_compose_v2:
+        project_src: "{{ docker_project_dir }}"
+        project_name: "{{ docker_project_name }}"
+        state: present
+        build: always
+
+  handlers:
+
+    - name: Restart Docker
+      ansible.builtin.systemd:
+        name: docker
+        state: restarted
+
