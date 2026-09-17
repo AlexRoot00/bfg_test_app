@@ -16,23 +16,28 @@
 │   └── test_app/
 └── README.md
 ```
-Installs and configures Docker on the target host, configures Docker daemon logging, firewall and scheduled cleanup, and deploys the Docker Compose project.
+## Components
 
-See ansible/README.md for deployment instructions.
+### Ansible
 
-Docker Compose
+Ansible is responsible for:
 
-The application consists of:
+- installing and configuring Docker;
+- configuring Docker daemon logging;
+- configuring firewall rules;
+- configuring scheduled Docker cleanup;
+- deploying the Docker Compose project.
 
-FastAPI application;
-PostgreSQL database.
+See [`ansible/README.md`](ansible/README.md) for deployment instructions.
 
-The Compose project is located in docker/ and is copied to the target host by Ansible.
+### Docker Compose
 
-Quick start
-cd ansible
-ansible-galaxy collection install -r requirements.yml
-ansible-playbook --syntax-check playbook.yml
-ansible-playbook playbook.yml
+The application is deployed using Docker Compose.
 
-See ansible/README.md for configuration and detailed instructions.
+The Compose project is located in [`docker/`](docker/) and contains:
+
+- `Dockerfile`;
+- `compose.yml`;
+- application source code in `test_app/`.
+
+See [`docker/README.md`](docker/README.md) for application-specific documentation.
