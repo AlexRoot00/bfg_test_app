@@ -28,16 +28,16 @@ Ansible is responsible for:
 - configuring scheduled Docker cleanup;
 - deploying the Docker Compose project.
 
-See [`ansible/README.md`](ansible/README.md) for deployment instructions.
+See [`ansible/README.md`](infra/ansible/README.md) for deployment instructions.
 
 ### Docker Compose
 
 The application is deployed using Docker Compose.
 
-The Compose project is located in [`docker/`](docker/) and contains:
+The Compose project is located in [`docker/`](infra/docker) and contains:
 
 - `Dockerfile`;
 - `compose.yml`;
 - application source code in `test_app/`.
 
-See [`docker/README.md`](docker/README.md) for application-specific documentation.
+See [`docker/README.md`](infra/dockerREADME.md) for application-specific documentation.
