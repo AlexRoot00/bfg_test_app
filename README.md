@@ -1,20 +1,20 @@
 Project structure
 .
-├── ansible/
-│   ├── README.md
-│   ├── ansible.cfg
-│   ├── inventory.yml
-│   ├── group_vars/
-│   │   └── all.yml
-│   ├── playbook.yml
-│   ├── requirements.yml
-│   └── templates/
-│       └── daemon.json.j2
-├── docker/
-│   ├── Dockerfile
-│   ├── compose.yml
-│   └── test_app/
-└── README.md
+|-- ansible/
+│   |--  README.md
+│   |--  ansible.cfg
+│   |--  inventory.yml
+│   |--  group_vars/
+│   │    ── all.yml
+│   |-- playbook.yml
+│   |-- requirements.yml
+│   -- templates/
+│       ── daemon.json.j2
+|--   docker/
+│   |-- Dockerfile
+│   |-- compose.yml
+│    -- test_app/
+-- README.md
 Components
 Ansible
 
