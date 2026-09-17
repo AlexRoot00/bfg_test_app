@@ -1,23 +1,21 @@
-Project structure
+```text
 .
-|-- ansible/
-│   |--  README.md
-│   |--  ansible.cfg
-│   |--  inventory.yml
-│   |--  group_vars/
-│   │    ── all.yml
-│   |-- playbook.yml
-│   |-- requirements.yml
-│   -- templates/
-│       ── daemon.json.j2
-|--   docker/
-│   |-- Dockerfile
-│   |-- compose.yml
-│    -- test_app/
--- README.md
-Components
-Ansible
-
+├── ansible/
+│   ├── README.md
+│   ├── ansible.cfg
+│   ├── inventory.yml
+│   ├── group_vars/
+│   │   └── all.yml
+│   ├── playbook.yml
+│   ├── requirements.yml
+│   └── templates/
+│       └── daemon.json.j2
+├── docker/
+│   ├── Dockerfile
+│   ├── compose.yml
+│   └── test_app/
+└── README.md
+```
 Installs and configures Docker on the target host, configures Docker daemon logging, firewall and scheduled cleanup, and deploys the Docker Compose project.
 
 See ansible/README.md for deployment instructions.
