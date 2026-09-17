@@ -1,0 +1,6 @@
+[submodule "infra/docker/test_app"]
+	path = infra/docker/test_app
+	url = git@github.com:AlexRoot00/bfg_test_app.git
+[submodule "test_app"]
+	path = test_app
+	url = git@github.com:AlexRoot00/test_app.git
